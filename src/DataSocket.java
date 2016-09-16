@@ -2,9 +2,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketImpl;
 import java.util.LinkedList;
 
-import model.ChallengeListItem;
+import model.*;
 
 
 public class DataSocket extends Socket {
@@ -13,7 +15,12 @@ public class DataSocket extends Socket {
 	ObjectOutputStream objectOutputStream;
     ObjectInputStream objectInputStream;
     
-    public ObjectOutputStream openObjectOutputStream() throws IOException {
+    public DataSocket(SocketImpl socketImpl) throws SocketException {
+    	
+    	super((SocketImpl) null);
+    }
+
+	public ObjectOutputStream openObjectOutputStream() throws IOException {
         objectOutputStream = new ObjectOutputStream(this.getOutputStream());
         return objectOutputStream;
     }
@@ -33,7 +40,10 @@ public class DataSocket extends Socket {
     
     public ChallengeListItem recieveChallenge() throws IOException, ClassNotFoundException {
     	this.openObjectInputStream();
-    	ChallengeListItem cli = (ChallengeListItem) objectInputStream.readObject();
+    	ChallengeListItem cli = null;
+    	Object o = objectInputStream.readObject();
+		if(o instanceof ChallengeListItem) 
+    		cli = (ChallengeListItem) o;
     	
     	return cli;
     }

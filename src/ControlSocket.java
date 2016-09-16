@@ -3,6 +3,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketImpl;
+
+
 
 public class ControlSocket extends Socket {
 
@@ -15,6 +19,11 @@ public class ControlSocket extends Socket {
 
 	private PrintStream outputStream;
 	private BufferedReader inputStream;
+
+	public ControlSocket(SocketImpl socketImpl) throws SocketException {
+
+		super((SocketImpl) null);
+	}
 
 	public PrintStream openOutputStream() throws IOException {
 		outputStream = new PrintStream(this.getOutputStream());

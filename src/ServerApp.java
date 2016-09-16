@@ -1,6 +1,4 @@
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.LinkedList;
 
 
@@ -13,12 +11,14 @@ public class ServerApp {
 		
 		try {
 			
-			ServerSocket controlSocketListener = new  ServerSocket(12000);
-			ServerSocket dataSocketListener = new ServerSocket(13000);
+			ServerControlSocket controlSocketListener = new  ServerControlSocket(45000);
+			ServerDataSocket dataSocketListener = new ServerDataSocket(46000);
 			
+			System.out.println("waiting for user...");
 			while (true) {
 				
-				ControlSocket controlSocket = (ControlSocket) controlSocketListener.accept();
+				ControlSocket controlSocket = controlSocketListener.accept();
+				System.out.println("User connected...");
 				controlSockets.addFirst(new ServerAppThread(controlSocket, dataSocketListener));
 				controlSockets.getFirst().start();
 			}
