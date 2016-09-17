@@ -48,14 +48,36 @@ public class DataSocket extends Socket {
     	return cli;
     }
     
-    public Boolean getSignal() throws IOException {
+    public ChallengeLiveItem recieveLiveChallenge() throws IOException, ClassNotFoundException {
+        this.openObjectInputStream();
+        ChallengeLiveItem cli = null;
+    	Object o = objectInputStream.readObject();
+		if(o instanceof ChallengeLiveItem) 
+    		cli = (ChallengeLiveItem) o;
+    	
+    	return cli;
+    }
+    
+    public Boolean getSignal() throws IOException, ClassNotFoundException {
     	this.openObjectInputStream();
-    	return objectInputStream.readBoolean();
+    	Boolean b = false;
+    	Object o  = objectInputStream.readObject();
+    	if(o instanceof Boolean) {
+    		b = (Boolean) o;
+    	}
+    	return b;
     }
     
     public void sendChallenges(LinkedList<ChallengeListItem> listChallenges) throws IOException {
     	this.openObjectOutputStream();
     	
     	objectOutputStream.writeObject(listChallenges);
+    }
+    
+    public void sendLiveChallenges(LinkedList<ChallengeLiveItem> liveChallenges) throws IOException {
+        this.openObjectOutputStream();
+       
+        objectOutputStream.writeObject(liveChallenges);
+       
     }
 }

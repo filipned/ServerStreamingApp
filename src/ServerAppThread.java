@@ -15,8 +15,7 @@ public class ServerAppThread extends Thread{
 	private ServerDataSocket dataSocketListener;
 	private String request = "/";
 	
-	private LinkedList<ChallengeListItem> listChallenges = new LinkedList<ChallengeListItem>();
-	private LinkedList<ChallengeLiveItem> liveChallenges = new LinkedList<ChallengeLiveItem>();
+	
 	
 	
 	public ServerAppThread(ControlSocket controlSocket, ServerDataSocket dataSocketListener) {
@@ -31,6 +30,9 @@ public class ServerAppThread extends Thread{
 			try {
 				System.out.println("waiting for request");
 				request = controlSocket.recieveRequest();
+				if(request.equals(null)) {
+					return;
+				}
 				System.out.println("Request is " + request);
 				switch (request) {
 				case ControlSocket.ADD_CHALLENGE_REQUEST:
@@ -38,7 +40,7 @@ public class ServerAppThread extends Thread{
 					break;
 	
 				case ControlSocket.ADD_LIVE_CHALLENGE_REQUEST:
-					//id
+					addLiveChallenge();
 					break;
 				
 				case ControlSocket.LIST_CHALLENGES_REQUEST:
@@ -46,7 +48,7 @@ public class ServerAppThread extends Thread{
 					break;
 					
 				case ControlSocket.LIVE_CHALLENGES_REQUEST:
-					
+					sendLiveChallenge();
 					break;
 					
 				case ControlSocket.REMOVE_LIVE_CHALLENGE_REQUEST:
@@ -54,7 +56,6 @@ public class ServerAppThread extends Thread{
 					break;
 					
 	//				dodati sve potrebene requestove
-					
 				default:
 					break;
 				}
@@ -66,7 +67,6 @@ public class ServerAppThread extends Thread{
 				e.printStackTrace();
 			} catch (NullPointerException e) {
 				// TODO: handle exception
-				
 			}
 		}
 		
@@ -84,10 +84,16 @@ public class ServerAppThread extends Thread{
 			if(tmpChallengeList.equals(null)) System.out.println("Null objekat");
 			System.out.println("list challenge recieved");
 			System.out.println(tmpChallengeList.toString());
+			for (int i = 0; i < ServerApp.listChallenges.size(); i++) {
+				if(ServerApp.listChallenges.get(i).getChallengeName().equals(tmpChallengeList.getChallengeName())) {
+					controlSocket.sendAnswer("bad");
+					return;
+				}
+			}
 			controlSocket.sendAnswer("good");
-			System.out.println("duzina liste" + listChallenges.size());
-			listChallenges.add(tmpChallengeList);
-			System.out.println("duzina liste" + listChallenges.size());
+			System.out.println("duzina liste" + ServerApp.listChallenges.size());
+			ServerApp.listChallenges.add(tmpChallengeList);
+			System.out.println("duzina liste" + ServerApp.listChallenges.size());
 		} catch (ClassNotFoundException e) {
 			controlSocket.sendAnswer("bad");
 			e.printStackTrace();
@@ -98,10 +104,60 @@ public class ServerAppThread extends Thread{
 		Boolean startSending = false;
 		controlSocket.sendAnswer("good");
 		
-		dataSocket = dataSocketListener.accept();
-		startSending = dataSocket.getSignal();
-		if(startSending) {
-			dataSocket.sendChallenges(listChallenges);
+        dataSocket = dataSocketListener.accept();
+		try {
+			startSending = dataSocket.getSignal();
+		
+			if(startSending) {
+				dataSocket.sendChallenges(ServerApp.listChallenges);
+			}
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
+	
+	 public void addLiveChallenge() throws IOException{
+	        ChallengeLiveItem tmpChallengeLive;
+	        controlSocket.sendAnswer("good");
+	       
+	        dataSocket = dataSocketListener.accept();
+	       
+	        try {
+	            tmpChallengeLive = dataSocket.recieveLiveChallenge();
+	           
+	           
+	            tmpChallengeLive.setID(ServerApp.userID++);
+	            
+	            if(tmpChallengeLive instanceof ChallengeLiveItem) {
+	            	controlSocket.sendAnswer("good");
+	            	ServerApp.liveChallenges.add(tmpChallengeLive);
+	            }
+	           
+	        } catch (ClassNotFoundException e) {
+	            // TODO Auto-generated catch block
+	            e.printStackTrace();
+	        }
+	       
+	    }
+	   
+	    public void sendLiveChallenge() throws IOException{
+	        Boolean startSending = false;
+	        controlSocket.sendAnswer("good");
+	       
+	        dataSocket = (DataSocket) dataSocketListener.accept();
+	        try {
+				startSending = dataSocket.getSignal();
+			
+		        if(startSending) {
+		            dataSocket.sendLiveChallenges(ServerApp.liveChallenges);
+		        }
+	        } catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	       
+	    }
+	
+	
 }
