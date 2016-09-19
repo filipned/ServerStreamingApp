@@ -1,3 +1,4 @@
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -30,9 +31,7 @@ public class ServerAppThread extends Thread{
 			try {
 				System.out.println("waiting for request");
 				request = controlSocket.recieveRequest();
-				if(request.equals(null)) {
-					return;
-				}
+				
 				System.out.println("Request is " + request);
 				switch (request) {
 				case ControlSocket.ADD_CHALLENGE_REQUEST:
@@ -67,6 +66,7 @@ public class ServerAppThread extends Thread{
 				e.printStackTrace();
 			} catch (NullPointerException e) {
 				// TODO: handle exception
+				break;
 			}
 		}
 		
