@@ -1,3 +1,4 @@
+import java.util.Collections;
 import java.util.LinkedList;
 
 public class Buffer {
@@ -10,6 +11,8 @@ public class Buffer {
 	public Buffer(int id) {
 		super();
 		this.id = id;
+		videoContent =  (LinkedList<byte[]>) Collections.synchronizedList(new LinkedList<byte[]>());
+		
 	}
 	public int getId() {
 		return id;
@@ -17,10 +20,10 @@ public class Buffer {
 	public void setId(int id) {
 		this.id = id;
 	}
-	public LinkedList<byte[]> getVideoContent() {
-		return videoContent;
+	public synchronized LinkedList<byte[]> getVideoContent() {
+		return (videoContent);
 	}
-	public void setVideoContent(LinkedList<byte[]> videoContent) {
+	public  synchronized void setVideoContent(LinkedList<byte[]> videoContent) {
 		this.videoContent = videoContent;
 	}
 	
