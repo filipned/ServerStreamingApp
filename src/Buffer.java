@@ -1,4 +1,5 @@
-import java.util.Collections;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.LinkedList;
 
 public class Buffer {
@@ -6,12 +7,13 @@ public class Buffer {
 	
 	private int id;
 	private LinkedList<byte[]> videoContent;
+	private DatagramSocket udpSocket; 
 	
-	
-	public Buffer(int id) {
+	public Buffer(int id) throws SocketException {
 		videoContent = new LinkedList<byte[]>();
 		this.id = id;
-		videoContent =  (LinkedList<byte[]>) Collections.synchronizedList(new LinkedList<byte[]>());
+		udpSocket = new DatagramSocket();
+		
 		
 	}
 	

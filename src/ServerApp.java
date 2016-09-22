@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.util.LinkedList;
 
 import model.ChallengeListItem;
@@ -10,7 +11,7 @@ public class ServerApp {
 	public static LinkedList<ChallengeListItem> listChallenges = new LinkedList<ChallengeListItem>();
 	public static LinkedList<ChallengeLiveItem> liveChallenges = new LinkedList<ChallengeLiveItem>();
 	public static int userID = 0;
-	public static LinkedList<Buffer> bufferList = new LinkedList<Buffer>();
+
 	
 	public static void main(String[] args) {
 		

@@ -5,9 +5,13 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.LinkedList;
 
 import model.*;
@@ -21,14 +25,21 @@ public class ServerAppThread extends Thread {
 	private int threadID;
 	private Buffer buffer;
 
-	ChallengeListItem tmpChallengeList;
-	ByteArrayOutputStream baos;
-	BufferedInputStream in;
+	private InetAddress group;
+	private DatagramSocket datagramSocket;
 
-	public ServerAppThread(ControlSocket controlSocket, ServerDataSocket dataSocketListener) {
+	private ChallengeListItem tmpChallengeList;
+	private ByteArrayOutputStream baos;
+	private BufferedInputStream in;
+	private ChallengeLiveItem tmpChallengeLive;
+
+	public ServerAppThread(ControlSocket controlSocket, ServerDataSocket dataSocketListener)
+			throws UnknownHostException {
 
 		this.controlSocket = controlSocket;
 		this.dataSocketListener = dataSocketListener;
+		group = InetAddress.getByName("192.168.43.1");
+
 	}
 
 	@Override
@@ -57,18 +68,13 @@ public class ServerAppThread extends Thread {
 					break;
 
 				case ControlSocket.REMOVE_LIVE_CHALLENGE_REQUEST:
-
+					ServerApp.liveChallenges.remove(tmpChallengeLive);
 					break;
 
 				case ControlSocket.START_STREAMING:
 					recieveStream();
 					break;
 
-				case ControlSocket.WATCH_CHALLENGE_REQUEST:
-
-					break;
-
-				// dodati sve potrebene requestove
 				default:
 					break;
 				}
@@ -139,7 +145,7 @@ public class ServerAppThread extends Thread {
 	}
 
 	public void addLiveChallenge() throws IOException {
-		ChallengeLiveItem tmpChallengeLive;
+
 		controlSocket.sendAnswer("good");
 
 		dataSocket = dataSocketListener.accept();
@@ -149,7 +155,8 @@ public class ServerAppThread extends Thread {
 
 			threadID = ServerApp.userID;
 			buffer = new Buffer(threadID);
-			ServerApp.bufferList.add(buffer);
+
+			datagramSocket = new DatagramSocket(threadID + 4400);
 
 			tmpChallengeLive.setID(ServerApp.userID++);
 
@@ -157,40 +164,12 @@ public class ServerAppThread extends Thread {
 				controlSocket.sendAnswer("good");
 				ServerApp.liveChallenges.add(tmpChallengeLive);
 			}
-
+			dataSocket.closeObjectInputStream();
+			dataSocket.close();
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-	}
-
-	public void sendChallenge(int id) throws IOException {
-		System.out.println("Establishing data stream...");
-		dataSocket = (DataSocket) dataSocketListener.accept();
-
-		for (int i = 0; i < ServerApp.bufferList.size(); i++) {
-			Buffer buff = ServerApp.bufferList.get(i);
-
-			if (id == buff.getId()) {
-				controlSocket.sendAnswer("good");
-				System.out.println("Establishing data stream...");
-				dataSocket = (DataSocket) dataSocketListener.accept();
-
-				synchronized (buff.getVideoContent()) {
-					LinkedList<byte[]> bytes = buff.getVideoContent();
-					for (int j = 0; j < bytes.size(); j++) {
-						OutputStream out = dataSocket.getOutputStream();
-						out.write(bytes.get(j));
-					}
-				}
-			}
-
-		}
-		controlSocket.sendAnswer("bad");
-
-		dataSocket.closeObjectInputStream();
-		dataSocket.close();
 
 	}
 
@@ -236,11 +215,18 @@ public class ServerAppThread extends Thread {
 					baos.write(content, 0, bytesRead);
 					System.out.println(content.length);
 					buffer.getVideoContent().add(content);
-					if (buffer.getVideoContent().size() > 3000)
+					if (buffer.getVideoContent().size() > 3000) {
+						DatagramPacket packet = new DatagramPacket(content, content.length, group, threadID + 4400);
+						datagramSocket.send(packet);
 						buffer.getVideoContent().removeFirst();
+					}
 				}
 
 			}
+			in.close();
+			baos.close();
+			dataSocket.close();
+			datagramSocket.close();
 
 		} catch (SocketTimeoutException e) {
 			// TODO: handle exception
