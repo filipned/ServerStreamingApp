@@ -21,7 +21,7 @@ public class ServerAppThread extends Thread {
 		this.controlSocket = controlSocket;
 		this.dataSocketListener = dataSocketListener;
 	}
-
+	
 	@Override
 	public void run() {
 		while (true) {
@@ -183,6 +183,7 @@ public class ServerAppThread extends Thread {
 			int bytesRead = -1;
 			while ((bytesRead = in.read(content)) != -1) {
 				baos.write(content, 0, bytesRead);
+				
 				buffer.getVideoContent().add(content);
 
 				if (buffer.getVideoContent().size() > 3000)
@@ -207,10 +208,12 @@ public class ServerAppThread extends Thread {
 				System.out.println("Establishing data stream...");
 				dataSocket = (DataSocket) dataSocketListener.accept();
 
-				LinkedList<byte[]> bytes = buff.getVideoContent();
+				synchronized(buff.getVideoContent()){
+				LinkedList<byte[]> bytes =  buff.getVideoContent();
 				for (int j = 0; j < bytes.size(); j++) {
 					OutputStream out = dataSocket.getOutputStream();
 					out.write(bytes.get(j));
+				}
 				}
 			}
 
