@@ -1,12 +1,13 @@
 
-
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
-
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.LinkedList;
 
 import model.*;
@@ -20,11 +21,16 @@ public class ServerAppThread extends Thread {
 	private int threadID;
 	private Buffer buffer;
 
+	ChallengeListItem tmpChallengeList;
+	ByteArrayOutputStream baos;
+	BufferedInputStream in;
+
 	public ServerAppThread(ControlSocket controlSocket, ServerDataSocket dataSocketListener) {
+
 		this.controlSocket = controlSocket;
 		this.dataSocketListener = dataSocketListener;
 	}
-	
+
 	@Override
 	public void run() {
 		while (true) {
@@ -32,7 +38,6 @@ public class ServerAppThread extends Thread {
 				System.out.println("waiting for request");
 				request = controlSocket.recieveRequest();
 
-				
 				System.out.println("Request is " + request);
 				switch (request) {
 				case ControlSocket.ADD_CHALLENGE_REQUEST:
@@ -60,7 +65,7 @@ public class ServerAppThread extends Thread {
 					break;
 
 				case ControlSocket.WATCH_CHALLENGE_REQUEST:
-					// sendStream(id);
+
 					break;
 
 				// dodati sve potrebene requestove
@@ -80,7 +85,7 @@ public class ServerAppThread extends Thread {
 	}
 
 	public void addChallenge() throws IOException {
-		ChallengeListItem tmpChallengeList;
+
 		controlSocket.sendAnswer("good");
 
 		System.out.println("Establishing data stream...");
@@ -93,7 +98,9 @@ public class ServerAppThread extends Thread {
 			System.out.println("list challenge recieved");
 			System.out.println(tmpChallengeList.toString());
 			for (int i = 0; i < ServerApp.listChallenges.size(); i++) {
+
 				if (ServerApp.listChallenges.get(i).getChallengeName().equals(tmpChallengeList.getChallengeName())) {
+
 					controlSocket.sendAnswer("bad");
 					return;
 				}
@@ -102,6 +109,8 @@ public class ServerAppThread extends Thread {
 			System.out.println("duzina liste" + ServerApp.listChallenges.size());
 			ServerApp.listChallenges.add(tmpChallengeList);
 			System.out.println("duzina liste" + ServerApp.listChallenges.size());
+			dataSocket.closeObjectInputStream();
+			dataSocket.close();
 		} catch (ClassNotFoundException e) {
 			controlSocket.sendAnswer("bad");
 			e.printStackTrace();
@@ -119,6 +128,10 @@ public class ServerAppThread extends Thread {
 			if (startSending) {
 				dataSocket.sendChallenges(ServerApp.listChallenges);
 			}
+
+			dataSocket.closeObjectInputStream();
+			dataSocket.closeObjectOutputStream();
+			dataSocket.close();
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -134,10 +147,10 @@ public class ServerAppThread extends Thread {
 		try {
 			tmpChallengeLive = dataSocket.recieveLiveChallenge();
 
-			int id = ServerApp.userID;
-			buffer = new Buffer(id);
+			threadID = ServerApp.userID;
+			buffer = new Buffer(threadID);
 			ServerApp.bufferList.add(buffer);
-			threadID = id;
+
 			tmpChallengeLive.setID(ServerApp.userID++);
 
 			if (tmpChallengeLive instanceof ChallengeLiveItem) {
@@ -152,54 +165,7 @@ public class ServerAppThread extends Thread {
 
 	}
 
-	public void sendLiveChallenges() throws IOException {
-		Boolean startSending = false;
-		controlSocket.sendAnswer("good");
-
-		dataSocket = (DataSocket) dataSocketListener.accept();
-		try {
-			startSending = dataSocket.getSignal();
-
-			if (startSending) {
-				dataSocket.sendLiveChallenges(ServerApp.liveChallenges);
-			}
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
-	public void recieveStream() throws IOException {
-		controlSocket.sendAnswer("good");
-
-		System.out.println("Establishing data stream...");
-		dataSocket = dataSocketListener.accept();
-		System.out.println("Data stream established");
-
-		InputStream in = dataSocket.getInputStream();
-
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-		while (true) {
-			byte[] content = new byte[4096];
-			int bytesRead = -1;
-			while ((bytesRead = in.read(content)) != -1) {
-				baos.write(content, 0, bytesRead);
-				
-				buffer.getVideoContent().add(content);
-
-				if (buffer.getVideoContent().size() > 3000)
-					buffer.getVideoContent().removeFirst();
-			}
-
-		}
-
-	}
-
 	public void sendChallenge(int id) throws IOException {
-
-		
 		System.out.println("Establishing data stream...");
 		dataSocket = (DataSocket) dataSocketListener.accept();
 
@@ -211,19 +177,76 @@ public class ServerAppThread extends Thread {
 				System.out.println("Establishing data stream...");
 				dataSocket = (DataSocket) dataSocketListener.accept();
 
-				synchronized(buff.getVideoContent()){
-				LinkedList<byte[]> bytes =  buff.getVideoContent();
-				for (int j = 0; j < bytes.size(); j++) {
-					OutputStream out = dataSocket.getOutputStream();
-					out.write(bytes.get(j));
-				}
+				synchronized (buff.getVideoContent()) {
+					LinkedList<byte[]> bytes = buff.getVideoContent();
+					for (int j = 0; j < bytes.size(); j++) {
+						OutputStream out = dataSocket.getOutputStream();
+						out.write(bytes.get(j));
+					}
 				}
 			}
 
 		}
 		controlSocket.sendAnswer("bad");
 
-	}
-	
+		dataSocket.closeObjectInputStream();
+		dataSocket.close();
 
+	}
+
+	public void sendLiveChallenges() throws IOException {
+		Boolean startSending = false;
+		controlSocket.sendAnswer("good");
+
+		dataSocket = (DataSocket) dataSocketListener.accept();
+		try {
+			startSending = dataSocket.getSignal();
+
+			if (startSending) {
+				dataSocket.sendLiveChallenges(ServerApp.liveChallenges);
+			}
+			dataSocket.closeObjectInputStream();
+			dataSocket.closeObjectOutputStream();
+			dataSocket.close();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	public void recieveStream() throws IOException {
+
+		try {
+
+			controlSocket.sendAnswer("good");
+
+			dataSocket = dataSocketListener.accept();
+
+			in = new BufferedInputStream(new DataInputStream(dataSocket.getInputStream()));
+
+			baos = new ByteArrayOutputStream();
+			while (in.read() != -1) {
+				dataSocket.setSoTimeout(3000);
+				System.out.println("prvi while");
+				byte[] content = new byte[4096];
+				int bytesRead = -1;
+				while ((bytesRead = in.read(content)) != -1) {
+					System.out.println("drugi while");
+					baos.write(content, 0, bytesRead);
+					System.out.println(content.length);
+					buffer.getVideoContent().add(content);
+					if (buffer.getVideoContent().size() > 3000)
+						buffer.getVideoContent().removeFirst();
+				}
+
+			}
+
+		} catch (SocketTimeoutException e) {
+			// TODO: handle exception
+			return;
+		} catch (NullPointerException e) {
+			// TODO: handle exception
+		}
+	}
 }

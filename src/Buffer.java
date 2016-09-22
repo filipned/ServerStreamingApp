@@ -9,11 +9,12 @@ public class Buffer {
 	
 	
 	public Buffer(int id) {
-		super();
+		videoContent = new LinkedList<byte[]>();
 		this.id = id;
 		videoContent =  (LinkedList<byte[]>) Collections.synchronizedList(new LinkedList<byte[]>());
 		
 	}
+	
 	public int getId() {
 		return id;
 	}
