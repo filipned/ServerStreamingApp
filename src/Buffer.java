@@ -8,9 +8,10 @@ public class Buffer {
 	
 	
 	public Buffer(int id) {
-		super();
+		videoContent = new LinkedList<byte[]>();
 		this.id = id;
 	}
+	
 	public int getId() {
 		return id;
 	}
