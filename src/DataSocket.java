@@ -1,3 +1,4 @@
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -14,6 +15,7 @@ public class DataSocket extends Socket {
 	
 	ObjectOutputStream objectOutputStream;
     ObjectInputStream objectInputStream;
+    FileInputStream fileInputStream;
     
     public DataSocket(SocketImpl socketImpl) throws SocketException {
     	
@@ -80,4 +82,5 @@ public class DataSocket extends Socket {
         objectOutputStream.writeObject(liveChallenges);
        
     }
+   
 }

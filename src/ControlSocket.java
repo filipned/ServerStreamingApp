@@ -16,9 +16,11 @@ public class ControlSocket extends Socket {
 	public final static String LIVE_CHALLENGES_REQUEST = "live_challenges_request";
 	public final static String REMOVE_LIVE_CHALLENGE_REQUEST = "remove_live_challenge";
 	public final static String WATCH_CHALLENGE_REQUEST = "watch_challenge";
+	public final static String START_STREAMING = "start_streaming";
 
 	private PrintStream outputStream;
 	private BufferedReader inputStream;
+	
 
 	public ControlSocket(SocketImpl socketImpl) throws SocketException {
 

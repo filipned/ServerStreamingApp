@@ -1,5 +1,9 @@
-import java.io.FileDescriptor;
+
+
+import java.io.ByteArrayOutputStream;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
@@ -15,6 +19,10 @@ public class ServerAppThread extends Thread{
 	private DataSocket dataSocket;
 	private ServerDataSocket dataSocketListener;
 	private String request = "/";
+	private int threadID;
+	private Buffer buffer;
+	
+	
 	
 	
 	
@@ -47,13 +55,22 @@ public class ServerAppThread extends Thread{
 					break;
 					
 				case ControlSocket.LIVE_CHALLENGES_REQUEST:
-					sendLiveChallenge();
+					sendLiveChallenges();
 					break;
 					
 				case ControlSocket.REMOVE_LIVE_CHALLENGE_REQUEST:
 					
 					break;
-					
+				
+				case ControlSocket.START_STREAMING:
+					recieveStream();
+				break;
+				
+				case ControlSocket.WATCH_CHALLENGE_REQUEST:
+					//sendLiveChallenge();
+				break;
+				
+				
 	//				dodati sve potrebene requestove
 				default:
 					break;
@@ -126,8 +143,12 @@ public class ServerAppThread extends Thread{
 	        try {
 	            tmpChallengeLive = dataSocket.recieveLiveChallenge();
 	           
-	           
+	            int id=ServerApp.userID;
+	            buffer = new Buffer(id);
+	            ServerApp.bufferList.add(buffer);
+	            threadID=id;
 	            tmpChallengeLive.setID(ServerApp.userID++);
+	            
 	            
 	            if(tmpChallengeLive instanceof ChallengeLiveItem) {
 	            	controlSocket.sendAnswer("good");
@@ -141,7 +162,7 @@ public class ServerAppThread extends Thread{
 	       
 	    }
 	   
-	    public void sendLiveChallenge() throws IOException{
+	    public void sendLiveChallenges() throws IOException{
 	        Boolean startSending = false;
 	        controlSocket.sendAnswer("good");
 	       
@@ -158,6 +179,27 @@ public class ServerAppThread extends Thread{
 			}
 	       
 	    }
+	    public void recieveStream() throws IOException{
+	    	
+	    	InputStream in = dataSocket.getInputStream();
+	    	
+	    	ByteArrayOutputStream baos = new ByteArrayOutputStream();  
+	    	while(in.read() != -1) {
+	    		byte[] content = new byte[ 4096 ];  
+	    		int bytesRead = -1;  
+	    		while( ( bytesRead = in.read( content ) ) != -1 ) {  
+	    	    baos.write( content, 0, bytesRead );  
+	    	    buffer.getVideoContent().add(content);
+	    	    if(buffer.getVideoContent().size()> 3000)
+	    	    	buffer.getVideoContent().removeFirst();
+	    		}
+	    	    
+	    	}
+	    	
+	    	
+	    }
+	    
+	    
 	
 	
 }
