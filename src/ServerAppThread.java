@@ -1,4 +1,3 @@
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -13,10 +12,15 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
+import java.util.concurrent.Delayed;
 
+import sockets.ControlSocket;
+import sockets.DataSocket;
+import sockets.ServerDataSocket;
 import model.*;
 
 public class ServerAppThread extends Thread {
+
 
 	private ControlSocket controlSocket;
 	private DataSocket dataSocket;
@@ -24,7 +28,8 @@ public class ServerAppThread extends Thread {
 	private String request = "/";
 	private int threadID;
 	private Buffer buffer;
-
+	private byte[] content;
+	private int bytesRead;
 	private InetAddress group;
 	private DatagramSocket datagramSocket;
 
@@ -33,8 +38,8 @@ public class ServerAppThread extends Thread {
 	private BufferedInputStream in;
 	private ChallengeLiveItem tmpChallengeLive;
 
-	public ServerAppThread(ControlSocket controlSocket, ServerDataSocket dataSocketListener)
-			throws UnknownHostException {
+	public ServerAppThread(ControlSocket controlSocket,
+			ServerDataSocket dataSocketListener) throws UnknownHostException {
 
 		this.controlSocket = controlSocket;
 		this.dataSocketListener = dataSocketListener;
@@ -105,16 +110,19 @@ public class ServerAppThread extends Thread {
 			System.out.println(tmpChallengeList.toString());
 			for (int i = 0; i < ServerApp.listChallenges.size(); i++) {
 
-				if (ServerApp.listChallenges.get(i).getChallengeName().equals(tmpChallengeList.getChallengeName())) {
+				if (ServerApp.listChallenges.get(i).getChallengeName()
+						.equals(tmpChallengeList.getChallengeName())) {
 
 					controlSocket.sendAnswer("bad");
 					return;
 				}
 			}
 			controlSocket.sendAnswer("good");
-			System.out.println("duzina liste" + ServerApp.listChallenges.size());
+			System.out
+					.println("duzina liste" + ServerApp.listChallenges.size());
 			ServerApp.listChallenges.add(tmpChallengeList);
-			System.out.println("duzina liste" + ServerApp.listChallenges.size());
+			System.out
+					.println("duzina liste" + ServerApp.listChallenges.size());
 			dataSocket.closeObjectInputStream();
 			dataSocket.close();
 		} catch (ClassNotFoundException e) {
@@ -195,30 +203,35 @@ public class ServerAppThread extends Thread {
 	}
 
 	public void recieveStream() throws IOException {
-
+			
 		try {
-
+				
 			controlSocket.sendAnswer("good");
 
 			dataSocket = dataSocketListener.accept();
 
-			in = new BufferedInputStream(new DataInputStream(dataSocket.getInputStream()));
+			in = new BufferedInputStream(new DataInputStream(
+					dataSocket.getInputStream()));
 
 			baos = new ByteArrayOutputStream();
+			
 			while (in.read() != -1) {
-				dataSocket.setSoTimeout(3000);
-				System.out.println("prvi while");
-				byte[] content = new byte[4096];
-				int bytesRead = -1;
+				dataSocket.setSoTimeout(5000);
+
+				content = new byte[4096];
+				bytesRead = -1;
+
 				while ((bytesRead = in.read(content)) != -1) {
-					System.out.println("drugi while");
+
 					baos.write(content, 0, bytesRead);
-					System.out.println(content.length);
+					System.out.println("normalno slanje" +content.length);
 					buffer.getVideoContent().add(content);
 					if (buffer.getVideoContent().size() > 3000) {
-						DatagramPacket packet = new DatagramPacket(content, content.length, group, threadID + 4400);
-						datagramSocket.send(packet);
-						buffer.getVideoContent().removeFirst();
+						 DatagramPacket packet = 
+								 new DatagramPacket(buffer.getVideoContent().get(0), content.length, group, threadID + 4400);
+						 
+						 datagramSocket.send(packet);
+						 buffer.getVideoContent().removeFirst();
 					}
 				}
 
@@ -230,9 +243,52 @@ public class ServerAppThread extends Thread {
 
 		} catch (SocketTimeoutException e) {
 			// TODO: handle exception
+			in.close();
+			baos.close();
+			dataSocket.close();
+			datagramSocket.close();
 			return;
 		} catch (NullPointerException e) {
 			// TODO: handle exception
 		}
 	}
 }
+
+//listen = true;
+//
+//new Thread(new Runnable() {
+//	
+//	@Override
+//	public void run() {
+//		// TODO Auto-generated method stub
+//			
+//			while(listen) {
+//				
+//					try {
+//						
+//						if(in.read() == -1 && buffer.getVideoContent().size() > 0) {
+//							 System.out.println("Slanje baferovanih podataka");
+//							 DatagramPacket packet = 
+//									 new DatagramPacket(buffer.getVideoContent().get(0), 4096, group, threadID + 4400);
+//							 
+//							 datagramSocket.send(packet);
+//							 buffer.getVideoContent().removeFirst();
+//							 
+//							 System.out.println(buffer.getVideoContent().get(0).length);
+//							 System.out.println(buffer.getVideoContent().size());
+//							 System.out.println("Velicina bafera " + buffer.getVideoContent().size());
+//
+//						} 
+//						if(buffer.getVideoContent().size() == 0) {
+//							System.out.println("Bafer ispraznjen");
+//						} 
+//						
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//						break;
+//					}	
+//				
+//			}
+//	}
+//}).start();
